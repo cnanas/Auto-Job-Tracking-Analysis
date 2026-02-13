@@ -123,7 +123,11 @@ function App() {
     () => indexedJobs.filter((job) => job.applied === true),
     [indexedJobs],
   )
-  const visibleJobs = activeTab === 'applied' ? appliedJobs : indexedJobs
+  const openJobs = useMemo(
+    () => indexedJobs.filter((job) => job.applied !== true),
+    [indexedJobs],
+  )
+  const visibleJobs = activeTab === 'applied' ? appliedJobs : openJobs
 
   const handleToggleApplied = useCallback(
     async (index, applied) => {
@@ -231,7 +235,7 @@ function App() {
               aria-selected={activeTab === 'all'}
               onClick={() => setActiveTab('all')}
             >
-              All ({jobs.length})
+              All ({openJobs.length})
             </button>
             <button
               type="button"
@@ -245,7 +249,7 @@ function App() {
           </div>
           <div className="write-controls">
             <label className="admin-key-label" htmlFor="admin-key-input">
-              Admin Key
+              Admin Key (Clear All)
             </label>
             <input
               id="admin-key-input"
@@ -253,7 +257,7 @@ function App() {
               className="admin-key-input"
               value={adminKey}
               onChange={(event) => setAdminKey(event.target.value)}
-              placeholder="Required if API key is enabled"
+              placeholder="Only needed for Clear All when API key is enabled"
               autoComplete="off"
             />
             <button
@@ -280,7 +284,7 @@ function App() {
             emptyMessage={
               activeTab === 'applied'
                 ? 'No jobs have been marked as applied yet.'
-                : 'No jobs have been submitted yet. Run your GPT action, then refresh.'
+                : 'No open jobs in All. Check the Applied tab or submit new jobs.'
             }
           />
         )}

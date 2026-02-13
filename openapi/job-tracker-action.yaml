@@ -11,7 +11,7 @@ paths:
       operationId: submitJobs
       x-openai-isConsequential: false
       security:
-        - bearerAuth: []
+        - apiKeyAuth: []
       requestBody:
         required: true
         content:
@@ -76,6 +76,7 @@ components:
         storage:
           type: string
   securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key

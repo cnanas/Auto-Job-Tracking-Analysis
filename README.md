@@ -9,15 +9,16 @@ Vite + React frontend with a Vercel serverless API route at `/api/jobs`.
   - Set `replaceExisting: true` to overwrite all existing jobs
 - `PATCH /api/jobs` updates a job's `applied` status
 - `DELETE /api/jobs` clears all jobs
-- API key auth for writes (`Authorization: Bearer ...` or `x-api-key`)
+- API key auth for `POST` and `DELETE` (`Authorization: Bearer ...` or `x-api-key`)
+- `PATCH` (applied toggle) is intentionally open so dashboard checkboxes work without a key
 - CORS support and `OPTIONS` handling
 - Pluggable storage:
   - `file` (default): writes to `data/jobs.json`
   - `kv`: uses Vercel KV (`@vercel/kv`)
   - `neon`: uses Neon Postgres (`@neondatabase/serverless`)
-- Frontend table with loading, error, empty state, and auto-refresh
+- Frontend card dashboard with loading, error, empty state, and auto-refresh
 - Frontend controls for tabs (`All` / `Applied`), applied checkboxes, and clear-all
-  - If `JOBS_API_KEY` is set, enter that key in the dashboard's `Admin Key` field to enable toggle/clear actions
+  - If `JOBS_API_KEY` is set, enter that key in the dashboard's `Admin Key` field for `Clear All`
 
 ## Quick Start
 
@@ -83,7 +84,6 @@ Append behavior:
 ```bash
 curl -X PATCH http://localhost:3000/api/jobs \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $JOBS_API_KEY" \
   -d '{ "index": 0, "applied": true }'
 ```
 

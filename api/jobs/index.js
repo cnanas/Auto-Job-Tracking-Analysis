@@ -628,7 +628,6 @@ export default async function handler(req, res) {
 
   if (req.method === 'PATCH') {
     try {
-      ensureAuthorized(req)
       const update = parsePatchPayload(req.body)
       const payload = await readJobsPayload()
       const nextPayload = applyAppliedUpdate(payload, update)

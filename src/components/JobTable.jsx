@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 function normalizeText(value) {
   if (typeof value !== 'string') {
     return ''
@@ -63,9 +65,31 @@ function formatPercent(value) {
   return `${normalized}%`
 }
 
-function cellText(value) {
+function ExpandableText({ value, fallback = 'N/A', maxChars = 80 }) {
+  const text = normalizeText(value) || fallback
+  const isExpandable = text.length > maxChars
+  const [expanded, setExpanded] = useState(false)
+
+  return (
+    <div className="expandable-text">
+      <p className={`expandable-copy ${!expanded && isExpandable ? 'is-clamped' : ''}`}>{text}</p>
+      {isExpandable && (
+        <button
+          type="button"
+          className="expand-button"
+          aria-expanded={expanded}
+          onClick={() => setExpanded((current) => !current)}
+        >
+          {expanded ? 'Show less' : 'Expand'}
+        </button>
+      )}
+    </div>
+  )
+}
+
+function maybeLink(value) {
   const normalized = normalizeText(value)
-  return normalized || 'N/A'
+  return normalized || ''
 }
 
 export default function JobTable({
@@ -79,70 +103,76 @@ export default function JobTable({
   }
 
   return (
-    <div className="table-wrap">
-      <table className="jobs-table">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Company</th>
-            <th>Job Title</th>
-            <th>Location</th>
-            <th>Salary</th>
-            <th>Citizenship Risk</th>
-            <th>Overall Match %</th>
-            <th>Apply?</th>
-            <th>Applied</th>
-            <th>Link</th>
-          </tr>
-        </thead>
-        <tbody>
-          {jobs.map((job, index) => (
-            <tr key={`${job.link || 'job'}-${index}`}>
-              <td className="row-index">{index + 1}</td>
-              <td>{cellText(job.company)}</td>
-              <td>{cellText(job.jobTitle)}</td>
-              <td>{cellText(job.location)}</td>
-              <td>{cellText(job.salary)}</td>
-              <td>
-                <span className={`pill ${riskToneClass(job.citizenshipRisk)}`}>
-                  {cellText(job.citizenshipRisk)}
-                </span>
-              </td>
-              <td>
-                <span className={`pill ${matchToneClass(job.overallMatchPercent)}`}>
-                  {formatPercent(job.overallMatchPercent)}
-                </span>
-              </td>
-              <td>
-                <span className={`pill ${applyToneClass(job.applyRecommendation)}`}>
-                  {cellText(job.applyRecommendation)}
-                </span>
-              </td>
-              <td>
-                <label className="checkbox-wrap">
-                  <input
-                    type="checkbox"
-                    checked={job.applied === true}
-                    disabled={!onToggleApplied || pendingIndex === job._sourceIndex}
-                    onChange={(event) =>
-                      onToggleApplied?.(job._sourceIndex ?? index, event.target.checked)
-                    }
-                  />
-                </label>
-              </td>
-              <td>
-                {normalizeText(job.link) ? (
-                  <a href={job.link} target="_blank" rel="noreferrer" className="table-link">
-                    View
-                  </a>
-                ) : (
-                  'N/A'
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="card-grid">
+      {jobs.map((job, index) => {
+        const sourceIndex = job._sourceIndex ?? index
+        const pending = pendingIndex === sourceIndex
+        const link = maybeLink(job.link)
+
+        return (
+          <article className="job-card" key={`${link || 'job'}-${sourceIndex}`}>
+            <div className="job-card-top">
+              <span className="row-index">#{index + 1}</span>
+              {link ? (
+                <a href={link} target="_blank" rel="noreferrer" className="table-link">
+                  View Listing
+                </a>
+              ) : (
+                <span className="status-text">N/A</span>
+              )}
+            </div>
+
+            <div className="job-headline-grid">
+              <div className="data-cell">
+                <p className="cell-label">Company</p>
+                <ExpandableText value={job.company} maxChars={64} />
+              </div>
+              <div className="data-cell">
+                <p className="cell-label">Job Title</p>
+                <ExpandableText value={job.jobTitle} maxChars={64} />
+              </div>
+            </div>
+
+            <div className="job-meta-grid">
+              <div className="data-cell">
+                <p className="cell-label">Location</p>
+                <ExpandableText value={job.location} maxChars={62} />
+              </div>
+              <div className="data-cell">
+                <p className="cell-label">Salary</p>
+                <ExpandableText value={job.salary} maxChars={62} />
+              </div>
+              <div className="data-cell">
+                <p className="cell-label">Citizenship Risk</p>
+                <div className={`pill pill-block ${riskToneClass(job.citizenshipRisk)}`}>
+                  <ExpandableText value={job.citizenshipRisk} maxChars={68} />
+                </div>
+              </div>
+              <div className="data-cell">
+                <p className="cell-label">Apply Recommendation</p>
+                <div className={`pill pill-block ${applyToneClass(job.applyRecommendation)}`}>
+                  <ExpandableText value={job.applyRecommendation} maxChars={68} />
+                </div>
+              </div>
+            </div>
+
+            <div className="job-card-bottom">
+              <span className={`pill ${matchToneClass(job.overallMatchPercent)}`}>
+                Match {formatPercent(job.overallMatchPercent)}
+              </span>
+              <label className="checkbox-wrap">
+                <input
+                  type="checkbox"
+                  checked={job.applied === true}
+                  disabled={!onToggleApplied || pending}
+                  onChange={(event) => onToggleApplied?.(sourceIndex, event.target.checked)}
+                />
+                <span>{pending ? 'Saving...' : 'Applied'}</span>
+              </label>
+            </div>
+          </article>
+        )
+      })}
     </div>
   )
 }
