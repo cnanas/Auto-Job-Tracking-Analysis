@@ -76,6 +76,67 @@ h1 {
   justify-content: space-between;
 }
 
+.toolbar {
+  margin-top: 0.9rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.tabs {
+  display: flex;
+  gap: 0.45rem;
+}
+
+.tab-button {
+  border: 1px solid #c8d5cd;
+  border-radius: 999px;
+  padding: 0.48rem 0.82rem;
+  background: #ffffff;
+  color: #3f5248;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tab-button.is-active {
+  background: #0d5d52;
+  border-color: #0d5d52;
+  color: #ffffff;
+}
+
+.write-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.admin-key-label {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #4f6258;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.admin-key-input {
+  border: 1px solid #c8d5cd;
+  border-radius: 999px;
+  padding: 0.48rem 0.85rem;
+  min-width: 220px;
+  font-size: 0.84rem;
+  font-family: inherit;
+  color: #213127;
+}
+
+.admin-key-input:focus {
+  outline: 2px solid #8ec5b4;
+  outline-offset: 1px;
+}
+
 .updated-at {
   font-size: 0.94rem;
   color: var(--ink-muted);
@@ -102,6 +163,22 @@ h1 {
   opacity: 0.65;
   cursor: not-allowed;
   transform: none;
+}
+
+.danger-button {
+  border: 1px solid #ab2a36;
+  border-radius: 999px;
+  padding: 0.48rem 0.82rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  background: #fff5f6;
+  color: #7f1e27;
+  cursor: pointer;
+}
+
+.danger-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .table-card {
@@ -159,6 +236,17 @@ h1 {
 
 .table-link:hover {
   color: #083a34;
+}
+
+.checkbox-wrap input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: #0d5d52;
+  cursor: pointer;
+}
+
+.checkbox-wrap input:disabled {
+  cursor: not-allowed;
 }
 
 .pill {
@@ -244,5 +332,14 @@ h1 {
 
   .meta-row {
     align-items: flex-start;
+  }
+
+  .toolbar {
+    align-items: flex-start;
+  }
+
+  .admin-key-input {
+    min-width: 100%;
+    width: 100%;
   }
 }

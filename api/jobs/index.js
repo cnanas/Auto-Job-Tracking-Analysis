@@ -15,7 +15,7 @@ class RequestError extends Error {
 function setCorsHeaders(res) {
   res.setHeader('Content-Type', 'application/json')
   res.setHeader('Access-Control-Allow-Origin', process.env.JOBS_ALLOW_ORIGIN || '*')
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-api-key')
 }
 
@@ -45,6 +45,22 @@ function normalizePercent(input) {
   return Math.max(0, Math.min(100, Math.round(parsed * 100) / 100))
 }
 
+function normalizeOptionalDate(input, fieldName) {
+  if (input === undefined || input === null || input === '') {
+    return null
+  }
+  if (typeof input !== 'string') {
+    throw new RequestError(400, `"${fieldName}" must be a string`)
+  }
+
+  const parsed = new Date(input)
+  if (Number.isNaN(parsed.getTime())) {
+    throw new RequestError(400, `"${fieldName}" must be a valid date string`)
+  }
+
+  return parsed.toISOString()
+}
+
 function requireValidUrl(input) {
   if (!input) {
     throw new RequestError(400, '"link" is required')
@@ -63,6 +79,14 @@ function normalizeJob(rawJob, index) {
     throw new RequestError(400, `Job at index ${index} must be an object`)
   }
 
+  const inputApplied = rawJob.applied
+  if (inputApplied !== undefined && inputApplied !== null && typeof inputApplied !== 'boolean') {
+    throw new RequestError(400, `"applied" must be a boolean for job at index ${index}`)
+  }
+
+  const applied = inputApplied === true
+  const appliedAt = applied ? normalizeOptionalDate(rawJob.appliedAt, 'appliedAt') : null
+
   const normalized = {
     company: normalizeText(rawJob.company, 'company'),
     jobTitle: normalizeText(rawJob.jobTitle, 'jobTitle'),
@@ -72,6 +96,8 @@ function normalizeJob(rawJob, index) {
     overallMatchPercent: normalizePercent(rawJob.overallMatchPercent),
     applyRecommendation: normalizeText(rawJob.applyRecommendation, 'applyRecommendation'),
     link: requireValidUrl(normalizeText(rawJob.link, 'link')),
+    applied,
+    appliedAt,
   }
 
   if (!normalized.company) {
@@ -102,6 +128,29 @@ function parseRequestBody(body) {
     }
   }
   return body ?? {}
+}
+
+function parsePatchPayload(body) {
+  const payload = parseRequestBody(body)
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    throw new RequestError(400, 'PATCH body must be an object')
+  }
+
+  if (typeof payload.applied !== 'boolean') {
+    throw new RequestError(400, '"applied" must be a boolean')
+  }
+
+  const hasValidIndex = Number.isInteger(payload.index)
+  const hasValidLink = typeof payload.link === 'string' && payload.link.trim() !== ''
+  if (!hasValidIndex && !hasValidLink) {
+    throw new RequestError(400, 'PATCH body must include either "index" (integer) or "link" (string)')
+  }
+
+  return {
+    index: hasValidIndex ? payload.index : null,
+    link: hasValidLink ? payload.link.trim() : null,
+    applied: payload.applied,
+  }
 }
 
 function extractApiKey(req) {
@@ -136,8 +185,28 @@ function normalizeStoredPayload(rawPayload) {
     return { ...DEFAULT_PAYLOAD }
   }
 
+  const jobs = Array.isArray(rawPayload.jobs)
+    ? rawPayload.jobs
+        .filter((job) => job && typeof job === 'object' && !Array.isArray(job))
+        .map((job) => ({
+          company: typeof job.company === 'string' ? job.company : '',
+          jobTitle: typeof job.jobTitle === 'string' ? job.jobTitle : '',
+          location: typeof job.location === 'string' ? job.location : '',
+          salary: typeof job.salary === 'string' ? job.salary : '',
+          citizenshipRisk: typeof job.citizenshipRisk === 'string' ? job.citizenshipRisk : '',
+          overallMatchPercent:
+            Number.isFinite(Number(job.overallMatchPercent)) || job.overallMatchPercent === 0
+              ? Number(job.overallMatchPercent)
+              : null,
+          applyRecommendation: typeof job.applyRecommendation === 'string' ? job.applyRecommendation : '',
+          link: typeof job.link === 'string' ? job.link : '',
+          applied: job.applied === true,
+          appliedAt: typeof job.appliedAt === 'string' ? job.appliedAt : null,
+        }))
+    : []
+
   return {
-    jobs: Array.isArray(rawPayload.jobs) ? rawPayload.jobs : [],
+    jobs,
     updatedAt: typeof rawPayload.updatedAt === 'string' ? rawPayload.updatedAt : null,
   }
 }
@@ -225,8 +294,20 @@ async function ensureNeonTable(sql) {
       overall_match_percent DOUBLE PRECISION,
       apply_recommendation TEXT,
       link TEXT NOT NULL,
+      applied BOOLEAN NOT NULL DEFAULT FALSE,
+      applied_at TIMESTAMPTZ,
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
+  `
+
+  await sql`
+    ALTER TABLE jobs_snapshot
+    ADD COLUMN IF NOT EXISTS applied BOOLEAN NOT NULL DEFAULT FALSE
+  `
+
+  await sql`
+    ALTER TABLE jobs_snapshot
+    ADD COLUMN IF NOT EXISTS applied_at TIMESTAMPTZ
   `
 }
 
@@ -256,6 +337,8 @@ function mapNeonRowToJob(row) {
         : Number(row.overall_match_percent),
     applyRecommendation: row.apply_recommendation || '',
     link: row.link || '',
+    applied: row.applied === true,
+    appliedAt: toIsoDate(row.applied_at),
   }
 }
 
@@ -274,6 +357,8 @@ async function readNeonPayload() {
       overall_match_percent,
       apply_recommendation,
       link,
+      applied,
+      applied_at,
       updated_at
     FROM jobs_snapshot
     ORDER BY row_order ASC
@@ -314,6 +399,8 @@ async function writeNeonPayload(payload) {
         overall_match_percent,
         apply_recommendation,
         link,
+        applied,
+        applied_at,
         updated_at
       )
       VALUES (
@@ -326,9 +413,65 @@ async function writeNeonPayload(payload) {
         ${job.overallMatchPercent},
         ${job.applyRecommendation || null},
         ${job.link},
+        ${job.applied === true},
+        ${job.applied === true ? job.appliedAt || updatedAt : null},
         ${updatedAt}
       )
     `
+  }
+}
+
+function carryForwardAppliedState(incomingJobs, existingJobs) {
+  const appliedByLink = new Map()
+
+  for (const job of existingJobs) {
+    if (job?.applied === true && typeof job.link === 'string' && job.link) {
+      appliedByLink.set(job.link, job.appliedAt || null)
+    }
+  }
+
+  return incomingJobs.map((job) => {
+    if (job.applied === true) {
+      return job
+    }
+    if (!job.link || !appliedByLink.has(job.link)) {
+      return job
+    }
+
+    return {
+      ...job,
+      applied: true,
+      appliedAt: appliedByLink.get(job.link),
+    }
+  })
+}
+
+function applyAppliedUpdate(payload, update) {
+  const nextJobs = [...payload.jobs]
+  let targetIndex = -1
+
+  if (update.index !== null) {
+    if (update.index < 0 || update.index >= nextJobs.length) {
+      throw new RequestError(404, 'Job index not found')
+    }
+    targetIndex = update.index
+  } else if (update.link) {
+    targetIndex = nextJobs.findIndex((job) => job.link === update.link)
+    if (targetIndex === -1) {
+      throw new RequestError(404, 'Job link not found')
+    }
+  }
+
+  const mutationTimestamp = new Date().toISOString()
+  nextJobs[targetIndex] = {
+    ...nextJobs[targetIndex],
+    applied: update.applied,
+    appliedAt: update.applied ? mutationTimestamp : null,
+  }
+
+  return {
+    jobs: nextJobs,
+    updatedAt: mutationTimestamp,
   }
 }
 
@@ -391,15 +534,17 @@ export default async function handler(req, res) {
       ensureAuthorized(req)
       const requestBody = parseRequestBody(req.body)
       const normalizedJobs = parseJobsPayload(requestBody)
+      const existingPayload = await readJobsPayload()
+      const mergedJobs = carryForwardAppliedState(normalizedJobs, existingPayload.jobs)
       const nextPayload = {
-        jobs: normalizedJobs,
+        jobs: mergedJobs,
         updatedAt: new Date().toISOString(),
       }
 
       await writeJobsPayload(nextPayload)
       sendJson(res, 200, {
         ok: true,
-        count: normalizedJobs.length,
+        count: mergedJobs.length,
         updatedAt: nextPayload.updatedAt,
         storage: STORAGE_PROVIDER,
       })
@@ -409,6 +554,55 @@ export default async function handler(req, res) {
       sendJson(res, statusCode, {
         ok: false,
         error: error.message || 'Failed to save jobs',
+      })
+      return
+    }
+  }
+
+  if (req.method === 'PATCH') {
+    try {
+      ensureAuthorized(req)
+      const update = parsePatchPayload(req.body)
+      const payload = await readJobsPayload()
+      const nextPayload = applyAppliedUpdate(payload, update)
+      await writeJobsPayload(nextPayload)
+
+      sendJson(res, 200, {
+        ok: true,
+        updatedAt: nextPayload.updatedAt,
+        storage: STORAGE_PROVIDER,
+      })
+      return
+    } catch (error) {
+      const statusCode = error instanceof RequestError ? error.status : 500
+      sendJson(res, statusCode, {
+        ok: false,
+        error: error.message || 'Failed to update job',
+      })
+      return
+    }
+  }
+
+  if (req.method === 'DELETE') {
+    try {
+      ensureAuthorized(req)
+      const nextPayload = {
+        jobs: [],
+        updatedAt: new Date().toISOString(),
+      }
+      await writeJobsPayload(nextPayload)
+      sendJson(res, 200, {
+        ok: true,
+        count: 0,
+        updatedAt: nextPayload.updatedAt,
+        storage: STORAGE_PROVIDER,
+      })
+      return
+    } catch (error) {
+      const statusCode = error instanceof RequestError ? error.status : 500
+      sendJson(res, statusCode, {
+        ok: false,
+        error: error.message || 'Failed to clear jobs',
       })
       return
     }

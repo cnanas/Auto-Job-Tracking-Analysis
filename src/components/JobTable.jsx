@@ -68,13 +68,14 @@ function cellText(value) {
   return normalized || 'N/A'
 }
 
-export default function JobTable({ jobs }) {
+export default function JobTable({
+  jobs,
+  onToggleApplied,
+  pendingIndex = null,
+  emptyMessage = 'No jobs have been submitted yet. Run your GPT action, then refresh.',
+}) {
   if (!Array.isArray(jobs) || jobs.length === 0) {
-    return (
-      <p className="status-text">
-        No jobs have been submitted yet. Run your GPT action, then refresh.
-      </p>
-    )
+    return <p className="status-text">{emptyMessage}</p>
   }
 
   return (
@@ -90,6 +91,7 @@ export default function JobTable({ jobs }) {
             <th>Citizenship Risk</th>
             <th>Overall Match %</th>
             <th>Apply?</th>
+            <th>Applied</th>
             <th>Link</th>
           </tr>
         </thead>
@@ -115,6 +117,18 @@ export default function JobTable({ jobs }) {
                 <span className={`pill ${applyToneClass(job.applyRecommendation)}`}>
                   {cellText(job.applyRecommendation)}
                 </span>
+              </td>
+              <td>
+                <label className="checkbox-wrap">
+                  <input
+                    type="checkbox"
+                    checked={job.applied === true}
+                    disabled={!onToggleApplied || pendingIndex === job._sourceIndex}
+                    onChange={(event) =>
+                      onToggleApplied?.(job._sourceIndex ?? index, event.target.checked)
+                    }
+                  />
+                </label>
               </td>
               <td>
                 {normalizeText(job.link) ? (
