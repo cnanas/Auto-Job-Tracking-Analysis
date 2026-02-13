@@ -33,7 +33,7 @@ body {
 }
 
 .app-shell {
-  max-width: 1200px;
+  max-width: 1360px;
   margin: 0 auto;
 }
 
@@ -192,8 +192,8 @@ h1 {
 
 .card-grid {
   display: grid;
-  gap: 0.82rem;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .job-card {
