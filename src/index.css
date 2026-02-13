@@ -1,0 +1,248 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg: #f6efe5;
+  --bg-accent: #e4efe9;
+  --ink: #14211a;
+  --ink-muted: #4b5d52;
+  --border: #d3ded7;
+  --card: rgba(255, 255, 255, 0.83);
+  --shadow: 0 18px 45px rgba(22, 41, 31, 0.14);
+  --btn: #0d5d52;
+  --btn-hover: #0b4f46;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  color: var(--ink);
+  font-family: 'Space Grotesk', 'Avenir Next', 'Segoe UI', sans-serif;
+  background:
+    radial-gradient(circle at 12% 16%, rgba(255, 198, 111, 0.42), transparent 32%),
+    radial-gradient(circle at 78% 20%, rgba(44, 148, 127, 0.26), transparent 42%),
+    linear-gradient(140deg, var(--bg), var(--bg-accent));
+}
+
+#root {
+  min-height: 100vh;
+  padding: clamp(1rem, 2.4vw, 2rem);
+}
+
+.app-shell {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.page-header {
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  border-radius: 24px;
+  padding: clamp(1.2rem, 2.3vw, 2rem);
+}
+
+.eyebrow {
+  margin: 0;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--ink-muted);
+}
+
+h1 {
+  margin: 0.45rem 0 0;
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: clamp(1.65rem, 4vw, 2.65rem);
+  line-height: 1.15;
+}
+
+.subtitle {
+  margin: 0.9rem 0 0;
+  color: var(--ink-muted);
+  font-size: 0.98rem;
+}
+
+.meta-row {
+  margin-top: 1.2rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.8rem;
+  justify-content: space-between;
+}
+
+.updated-at {
+  font-size: 0.94rem;
+  color: var(--ink-muted);
+}
+
+.refresh-button {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.58rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #f8fffc;
+  background: var(--btn);
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.refresh-button:hover {
+  background: var(--btn-hover);
+  transform: translateY(-1px);
+}
+
+.refresh-button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.table-card {
+  margin-top: 1rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+  padding: 1rem;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+}
+
+.jobs-table {
+  width: 100%;
+  min-width: 1020px;
+  border-collapse: collapse;
+  background: #ffffff;
+}
+
+.jobs-table th,
+.jobs-table td {
+  border-bottom: 1px solid #e8eee9;
+  text-align: left;
+  vertical-align: middle;
+  padding: 0.78rem 0.86rem;
+  font-size: 0.89rem;
+}
+
+.jobs-table th {
+  background: #f3faf6;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #4f6258;
+}
+
+.jobs-table tr:last-child td {
+  border-bottom: none;
+}
+
+.row-index {
+  color: #607568;
+  font-weight: 600;
+}
+
+.table-link {
+  color: #0b4f46;
+  font-weight: 600;
+}
+
+.table-link:hover {
+  color: #083a34;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.24rem 0.58rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.pill-neutral {
+  color: #45544b;
+  background: #ebf0ed;
+}
+
+.pill-high {
+  color: #0a4d2f;
+  background: #d5f2e0;
+}
+
+.pill-medium {
+  color: #7a4d0f;
+  background: #fae4bc;
+}
+
+.pill-low {
+  color: #872026;
+  background: #f8d6d8;
+}
+
+.pill-low-risk {
+  color: #0a4d2f;
+  background: #d5f2e0;
+}
+
+.pill-medium-risk {
+  color: #7a4d0f;
+  background: #fae4bc;
+}
+
+.pill-high-risk {
+  color: #872026;
+  background: #f8d6d8;
+}
+
+.pill-selective {
+  color: #72500a;
+  background: #f7e6bf;
+}
+
+.pill-strong {
+  color: #084f44;
+  background: #c8f0e9;
+}
+
+.pill-very-strong {
+  color: #ffffff;
+  background: #0d5d52;
+}
+
+.status-text {
+  margin: 0.4rem 0;
+  color: var(--ink-muted);
+}
+
+.status-error {
+  color: #8a1721;
+}
+
+.page-footer {
+  padding: 0.9rem 0.35rem 0;
+  font-size: 0.82rem;
+  color: #54665c;
+}
+
+@media (max-width: 700px) {
+  .page-header,
+  .table-card {
+    border-radius: 18px;
+  }
+
+  .meta-row {
+    align-items: flex-start;
+  }
+}

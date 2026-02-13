@@ -1,0 +1,70 @@
+openapi: 3.0.0
+info:
+  title: Job Tracker API
+  version: 1.0.0
+servers:
+  - url: https://YOUR_VERCEL_PROJECT.vercel.app
+paths:
+  /api/jobs:
+    post:
+      summary: Submit analyzed jobs to the tracking dashboard
+      operationId: submitJobs
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - jobs
+              properties:
+                jobs:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - company
+                      - jobTitle
+                      - link
+                    properties:
+                      company:
+                        type: string
+                      jobTitle:
+                        type: string
+                      location:
+                        type: string
+                      salary:
+                        type: string
+                      citizenshipRisk:
+                        type: string
+                      overallMatchPercent:
+                        type: number
+                      applyRecommendation:
+                        type: string
+                      link:
+                        type: string
+                        format: uri
+      responses:
+        '200':
+          description: Jobs submitted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  count:
+                    type: integer
+                  updatedAt:
+                    type: string
+                    format: date-time
+                  storage:
+                    type: string
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
