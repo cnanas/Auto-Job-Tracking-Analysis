@@ -5,7 +5,8 @@ Vite + React frontend with a Vercel serverless API route at `/api/jobs`.
 ## Features
 
 - `GET /api/jobs` returns `{ jobs, updatedAt }`
-- `POST /api/jobs` accepts `{ jobs: [...] }` or `[...]`
+- `POST /api/jobs` accepts `{ jobs: [...] }` or `[...]` and merges into existing jobs by default
+  - Set `replaceExisting: true` to overwrite all existing jobs
 - `PATCH /api/jobs` updates a job's `applied` status
 - `DELETE /api/jobs` clears all jobs
 - API key auth for writes (`Authorization: Bearer ...` or `x-api-key`)
@@ -73,6 +74,10 @@ curl -X POST http://localhost:3000/api/jobs \
   }'
 ```
 
+Append behavior:
+- Repeated `POST` calls keep existing jobs and add/update by `link`.
+- Existing jobs are only fully replaced when `replaceExisting: true` is sent.
+
 ### Mark a job as applied
 
 ```bash
@@ -101,6 +106,8 @@ curl -X DELETE http://localhost:3000/api/jobs \
 ## Custom GPT Action
 
 Use `openapi/job-tracker-action.yaml` in the GPT Action editor, then replace the server URL with your deployed Vercel URL.
+Set the GPT Action Privacy Policy URL to:
+- `https://<your-project>.vercel.app/privacy-policy.html`
 
 ## Neon Setup (Recommended for Vercel Deploys)
 

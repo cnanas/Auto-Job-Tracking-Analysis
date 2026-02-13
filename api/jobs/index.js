@@ -130,6 +130,22 @@ function parseRequestBody(body) {
   return body ?? {}
 }
 
+function shouldReplaceExisting(body) {
+  if (Array.isArray(body)) {
+    return false
+  }
+  if (!body || typeof body !== 'object') {
+    return false
+  }
+  if (body.replaceExisting === undefined) {
+    return false
+  }
+  if (typeof body.replaceExisting !== 'boolean') {
+    throw new RequestError(400, '"replaceExisting" must be a boolean when provided')
+  }
+  return body.replaceExisting
+}
+
 function parsePatchPayload(body) {
   const payload = parseRequestBody(body)
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
@@ -446,6 +462,38 @@ function carryForwardAppliedState(incomingJobs, existingJobs) {
   })
 }
 
+function mergeJobs(existingJobs, incomingJobs, replaceExisting) {
+  const incomingWithAppliedState = carryForwardAppliedState(incomingJobs, existingJobs)
+  if (replaceExisting) {
+    return incomingWithAppliedState
+  }
+
+  const mergedJobs = [...existingJobs]
+  const indexByLink = new Map()
+
+  for (let index = 0; index < mergedJobs.length; index += 1) {
+    const link = mergedJobs[index]?.link
+    if (typeof link === 'string' && link && !indexByLink.has(link)) {
+      indexByLink.set(link, index)
+    }
+  }
+
+  for (const incomingJob of incomingWithAppliedState) {
+    const link = incomingJob.link
+    if (typeof link === 'string' && link && indexByLink.has(link)) {
+      mergedJobs[indexByLink.get(link)] = incomingJob
+      continue
+    }
+
+    mergedJobs.push(incomingJob)
+    if (typeof link === 'string' && link) {
+      indexByLink.set(link, mergedJobs.length - 1)
+    }
+  }
+
+  return mergedJobs
+}
+
 function applyAppliedUpdate(payload, update) {
   const nextJobs = [...payload.jobs]
   let targetIndex = -1
@@ -534,8 +582,9 @@ export default async function handler(req, res) {
       ensureAuthorized(req)
       const requestBody = parseRequestBody(req.body)
       const normalizedJobs = parseJobsPayload(requestBody)
+      const replaceExisting = shouldReplaceExisting(requestBody)
       const existingPayload = await readJobsPayload()
-      const mergedJobs = carryForwardAppliedState(normalizedJobs, existingPayload.jobs)
+      const mergedJobs = mergeJobs(existingPayload.jobs, normalizedJobs, replaceExisting)
       const nextPayload = {
         jobs: mergedJobs,
         updatedAt: new Date().toISOString(),

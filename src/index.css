@@ -322,6 +322,21 @@ h1 {
   padding: 0.9rem 0.35rem 0;
   font-size: 0.82rem;
   color: #54665c;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.footer-link {
+  color: #0b4f46;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.footer-link:hover {
+  text-decoration: underline;
 }
 
 @media (max-width: 700px) {

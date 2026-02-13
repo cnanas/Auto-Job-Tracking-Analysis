@@ -286,7 +286,15 @@ function App() {
         )}
       </main>
       <footer className="page-footer">
-        Auto-refresh interval: {Math.round(AUTO_REFRESH_MS / 1000)} seconds
+        <span>Auto-refresh interval: {Math.round(AUTO_REFRESH_MS / 1000)} seconds</span>
+        <a
+          className="footer-link"
+          href="/privacy-policy.html"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Privacy Policy
+        </a>
       </footer>
     </div>
   )

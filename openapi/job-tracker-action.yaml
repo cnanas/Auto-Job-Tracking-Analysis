@@ -55,6 +55,9 @@ components:
       required:
         - jobs
       properties:
+        replaceExisting:
+          type: boolean
+          description: Optional. Defaults to false; when true it replaces all stored jobs.
         jobs:
           type: array
           items:
