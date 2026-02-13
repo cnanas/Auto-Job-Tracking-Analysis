@@ -171,15 +171,33 @@ function parsePatchPayload(body) {
 
 function extractApiKey(req) {
   const authorization = req.headers.authorization
-  if (typeof authorization === 'string' && authorization.startsWith('Bearer ')) {
-    return authorization.slice('Bearer '.length).trim()
+  if (typeof authorization === 'string') {
+    const trimmedAuthorization = authorization.trim()
+    if (trimmedAuthorization.toLowerCase().startsWith('bearer ')) {
+      return trimmedAuthorization.slice('bearer '.length).trim()
+    }
+    if (trimmedAuthorization) {
+      return trimmedAuthorization
+    }
   }
 
   const apiKeyHeader = req.headers['x-api-key']
   if (Array.isArray(apiKeyHeader)) {
     return apiKeyHeader[0]
   }
-  return apiKeyHeader || ''
+  if (typeof apiKeyHeader === 'string' && apiKeyHeader.trim()) {
+    return apiKeyHeader.trim()
+  }
+
+  const altApiKeyHeader = req.headers['api-key']
+  if (Array.isArray(altApiKeyHeader)) {
+    return altApiKeyHeader[0]
+  }
+  if (typeof altApiKeyHeader === 'string' && altApiKeyHeader.trim()) {
+    return altApiKeyHeader.trim()
+  }
+
+  return ''
 }
 
 function ensureAuthorized(req) {
