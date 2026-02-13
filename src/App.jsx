@@ -3,6 +3,8 @@ import JobTable from './components/JobTable'
 
 const AUTO_REFRESH_MS = 60_000
 const ADMIN_KEY_STORAGE_KEY = 'jobs_admin_key'
+const SORT_BY_MATCH_DESC = 'match_desc'
+const SORT_BY_MATCH_ASC = 'match_asc'
 
 function formatUpdatedAt(timestamp) {
   if (!timestamp) {
@@ -29,6 +31,38 @@ async function readApiError(response, fallbackMessage) {
   return `${fallbackMessage} (${response.status})`
 }
 
+function normalizeMatchScore(value) {
+  const score = Number(value)
+  if (!Number.isFinite(score)) {
+    return null
+  }
+  return Math.max(0, Math.min(100, score))
+}
+
+function sortJobsByMatch(jobs, sortMode) {
+  const direction = sortMode === SORT_BY_MATCH_ASC ? 1 : -1
+
+  return [...jobs].sort((left, right) => {
+    const leftScore = normalizeMatchScore(left.overallMatchPercent)
+    const rightScore = normalizeMatchScore(right.overallMatchPercent)
+
+    if (leftScore === null && rightScore === null) {
+      return 0
+    }
+    if (leftScore === null) {
+      return 1
+    }
+    if (rightScore === null) {
+      return -1
+    }
+
+    if (leftScore === rightScore) {
+      return 0
+    }
+    return (leftScore - rightScore) * direction
+  })
+}
+
 function App() {
   const [jobs, setJobs] = useState([])
   const [updatedAt, setUpdatedAt] = useState(null)
@@ -40,6 +74,7 @@ function App() {
   const [clearing, setClearing] = useState(false)
   const [adminKey, setAdminKey] = useState('')
   const [activeTab, setActiveTab] = useState('all')
+  const [sortMode, setSortMode] = useState(SORT_BY_MATCH_DESC)
 
   useEffect(() => {
     const savedKey = window.localStorage.getItem(ADMIN_KEY_STORAGE_KEY)
@@ -127,7 +162,12 @@ function App() {
     () => indexedJobs.filter((job) => job.applied !== true),
     [indexedJobs],
   )
-  const visibleJobs = activeTab === 'applied' ? appliedJobs : openJobs
+  const sortedOpenJobs = useMemo(() => sortJobsByMatch(openJobs, sortMode), [openJobs, sortMode])
+  const sortedAppliedJobs = useMemo(
+    () => sortJobsByMatch(appliedJobs, sortMode),
+    [appliedJobs, sortMode],
+  )
+  const visibleJobs = activeTab === 'applied' ? sortedAppliedJobs : sortedOpenJobs
 
   const handleToggleApplied = useCallback(
     async (index, applied) => {
@@ -246,6 +286,21 @@ function App() {
             >
               Applied ({appliedJobs.length})
             </button>
+          </div>
+          <div className="sort-controls">
+            <label className="sort-label" htmlFor="sort-mode-select">
+              Sort
+            </label>
+            <select
+              id="sort-mode-select"
+              className="sort-select"
+              value={sortMode}
+              onChange={(event) => setSortMode(event.target.value)}
+              disabled={loading || refreshing}
+            >
+              <option value={SORT_BY_MATCH_DESC}>Best Match (High to Low)</option>
+              <option value={SORT_BY_MATCH_ASC}>Best Match (Low to High)</option>
+            </select>
           </div>
           <div className="write-controls">
             <label className="admin-key-label" htmlFor="admin-key-input">

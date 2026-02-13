@@ -90,6 +90,37 @@ h1 {
   gap: 0.45rem;
 }
 
+.sort-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.sort-label {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #4f6258;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.sort-select {
+  border: 1px solid #c8d5cd;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #213127;
+  font-size: 0.84rem;
+  font-family: inherit;
+  font-weight: 600;
+  padding: 0.48rem 2rem 0.48rem 0.85rem;
+  cursor: pointer;
+}
+
+.sort-select:focus {
+  outline: 2px solid #8ec5b4;
+  outline-offset: 1px;
+}
+
 .tab-button {
   border: 1px solid #c8d5cd;
   border-radius: 999px;
@@ -464,6 +495,14 @@ h1 {
 
   .admin-key-input {
     min-width: 100%;
+    width: 100%;
+  }
+
+  .sort-controls {
+    width: 100%;
+  }
+
+  .sort-select {
     width: 100%;
   }
 
