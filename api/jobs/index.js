@@ -194,7 +194,159 @@ async function writeKvPayload(payload) {
   await kv.set('jobs_payload', payload)
 }
 
+async function getNeonSql() {
+  const databaseUrl = process.env.DATABASE_URL
+  if (!databaseUrl) {
+    throw new Error('Neon provider selected but DATABASE_URL is not set.')
+  }
+
+  let neon
+  try {
+    ;({ neon } = await import('@neondatabase/serverless'))
+  } catch {
+    throw new Error(
+      'Neon provider selected but "@neondatabase/serverless" is unavailable. Install it or switch JOBS_STORAGE_PROVIDER.',
+    )
+  }
+
+  return neon(databaseUrl)
+}
+
+async function ensureNeonTable(sql) {
+  await sql`
+    CREATE TABLE IF NOT EXISTS jobs_snapshot (
+      id BIGSERIAL PRIMARY KEY,
+      row_order INTEGER NOT NULL,
+      company TEXT NOT NULL,
+      job_title TEXT NOT NULL,
+      location TEXT,
+      salary TEXT,
+      citizenship_risk TEXT,
+      overall_match_percent DOUBLE PRECISION,
+      apply_recommendation TEXT,
+      link TEXT NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `
+}
+
+function toIsoDate(value) {
+  if (!value) {
+    return null
+  }
+
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) {
+    return null
+  }
+
+  return parsed.toISOString()
+}
+
+function mapNeonRowToJob(row) {
+  return {
+    company: row.company || '',
+    jobTitle: row.job_title || '',
+    location: row.location || '',
+    salary: row.salary || '',
+    citizenshipRisk: row.citizenship_risk || '',
+    overallMatchPercent:
+      row.overall_match_percent === null || row.overall_match_percent === undefined
+        ? null
+        : Number(row.overall_match_percent),
+    applyRecommendation: row.apply_recommendation || '',
+    link: row.link || '',
+  }
+}
+
+async function readNeonPayload() {
+  const sql = await getNeonSql()
+  await ensureNeonTable(sql)
+
+  const rows = await sql`
+    SELECT
+      row_order,
+      company,
+      job_title,
+      location,
+      salary,
+      citizenship_risk,
+      overall_match_percent,
+      apply_recommendation,
+      link,
+      updated_at
+    FROM jobs_snapshot
+    ORDER BY row_order ASC
+  `
+
+  const jobs = rows.map(mapNeonRowToJob)
+  const updatedAt = rows.reduce((latest, row) => {
+    const current = toIsoDate(row.updated_at)
+    if (!current) {
+      return latest
+    }
+    if (!latest) {
+      return current
+    }
+    return current > latest ? current : latest
+  }, null)
+
+  return { jobs, updatedAt }
+}
+
+async function writeNeonPayload(payload) {
+  const sql = await getNeonSql()
+  await ensureNeonTable(sql)
+
+  const updatedAt = payload.updatedAt || new Date().toISOString()
+  await sql`DELETE FROM jobs_snapshot`
+
+  for (let index = 0; index < payload.jobs.length; index += 1) {
+    const job = payload.jobs[index]
+    await sql`
+      INSERT INTO jobs_snapshot (
+        row_order,
+        company,
+        job_title,
+        location,
+        salary,
+        citizenship_risk,
+        overall_match_percent,
+        apply_recommendation,
+        link,
+        updated_at
+      )
+      VALUES (
+        ${index},
+        ${job.company},
+        ${job.jobTitle},
+        ${job.location || null},
+        ${job.salary || null},
+        ${job.citizenshipRisk || null},
+        ${job.overallMatchPercent},
+        ${job.applyRecommendation || null},
+        ${job.link},
+        ${updatedAt}
+      )
+    `
+  }
+}
+
+function ensureStorageProviderIsSupported(provider) {
+  if (provider === 'file' || provider === 'kv' || provider === 'neon') {
+    return
+  }
+  throw new Error(
+    `Unsupported JOBS_STORAGE_PROVIDER "${provider}". Use one of: file, kv, neon.`,
+  )
+}
+
 async function readJobsPayload() {
+  ensureStorageProviderIsSupported(STORAGE_PROVIDER)
+
+  if (STORAGE_PROVIDER === 'neon') {
+    return readNeonPayload()
+  }
   if (STORAGE_PROVIDER === 'kv') {
     return readKvPayload()
   }
@@ -202,6 +354,12 @@ async function readJobsPayload() {
 }
 
 async function writeJobsPayload(payload) {
+  ensureStorageProviderIsSupported(STORAGE_PROVIDER)
+
+  if (STORAGE_PROVIDER === 'neon') {
+    await writeNeonPayload(payload)
+    return
+  }
   if (STORAGE_PROVIDER === 'kv') {
     await writeKvPayload(payload)
     return

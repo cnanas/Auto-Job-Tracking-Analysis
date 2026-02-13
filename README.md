@@ -11,6 +11,7 @@ Vite + React frontend with a Vercel serverless API route at `/api/jobs`.
 - Pluggable storage:
   - `file` (default): writes to `data/jobs.json`
   - `kv`: uses Vercel KV (`@vercel/kv`)
+  - `neon`: uses Neon Postgres (`@neondatabase/serverless`)
 - Frontend table with loading, error, empty state, and auto-refresh
 
 ## Quick Start
@@ -32,10 +33,11 @@ npx vercel dev
 | Variable | Required | Description |
 | --- | --- | --- |
 | `JOBS_API_KEY` | Recommended | Secret key required for `POST /api/jobs` |
-| `JOBS_STORAGE_PROVIDER` | No | `file` (default) or `kv` |
+| `JOBS_STORAGE_PROVIDER` | No | `file` (default), `kv`, or `neon` |
 | `JOBS_ALLOW_ORIGIN` | No | CORS allow-origin (default `*`) |
 | `KV_REST_API_URL` | If `kv` | Vercel KV URL |
 | `KV_REST_API_TOKEN` | If `kv` | Vercel KV token |
+| `DATABASE_URL` | If `neon` | Neon Postgres connection string |
 
 ## API Examples
 
@@ -79,4 +81,13 @@ curl -X POST http://localhost:3000/api/jobs \
 ## Custom GPT Action
 
 Use `openapi/job-tracker-action.yaml` in the GPT Action editor, then replace the server URL with your deployed Vercel URL.
-# Auto-Job-Tracking-Analysis
+
+## Neon Setup (Recommended for Vercel Deploys)
+
+1. Create a Neon project and copy the connection string.
+2. In Vercel env vars, set:
+   - `JOBS_STORAGE_PROVIDER=neon`
+   - `DATABASE_URL=<your neon connection string>`
+   - `JOBS_API_KEY=<your random secret>`
+3. Redeploy.
+4. Test `POST /api/jobs` from your GPT Action.
